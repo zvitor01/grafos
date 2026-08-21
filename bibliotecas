@@ -1,0 +1,1 @@
+pip install google-genai networkx matplotlib numpy scipy --user
