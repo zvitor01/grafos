@@ -1,0 +1,100 @@
+import json
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+from google import genai
+from google.genai import types
+
+cidades = [
+    "Amsterdã", "Berlim", "Bruxelas", "Copenhague", "Estocolmo",
+    "Oslo", "Helsinque", "Viena", "Praga", "Varsóvia",
+    "Budapeste", "Munique", "Milão", "Lisboa", "Barcelona",
+    "Zurique", "Genebra", "Edimburgo", "Dublin", "Atenas"
+]
+
+chave_api = "AQ.Ab8RN6I5UpGl16KJ6ZhPy3CvYuKaz5YIYLbqAscB5CRJKGvYfA" 
+
+client = genai.Client(api_key=chave_api)
+
+prompt = f"""
+Você é um especialista em aviação, logística e teoria dos grafos. 
+Aqui está um conjunto estrito de 20 cidades europeias:
+{cidades}
+
+Retorne um JSON contendo uma lista de rotas aéreas diretas reais APENAS entre as cidades desta lista.
+O formato DEVE ser ESTRITAMENTE JSON, com a seguinte estrutura:
+{{
+  "rotas": [["Amsterdã", "Berlim"], ["Lisboa", "Barcelona"]]
+}}
+Crie pelo menos 45 rotas para garantir que todas as cidades da lista estejam conectadas no grafo.
+"""
+
+print("\nConsultando a API...")
+
+try:
+    response = client.models.generate_content(
+        model='gemini-3.6-flash',
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+        )
+    )
+    
+    dados = json.loads(response.text)
+    rotas = [tuple(rota) for rota in dados["rotas"]]
+
+    print(f"Sucesso! A IA gerou a malha aérea com {len(rotas)} rotas.\n")
+    
+    G = nx.Graph()
+    G.add_nodes_from(cidades)
+    G.add_edges_from(rotas)
+
+    matriz_adj = nx.adjacency_matrix(G, nodelist=cidades).todense()
+    print("Matriz de Adjacência")
+    print(np.array(matriz_adj))
+
+    print("Cidades")
+    for i in range(0, 20, 4):
+        print(f"{cidades[i]:<12} | {cidades[i+1]:<12} | {cidades[i+2]:<12} | {cidades[i+3]:<12}")
+    print("\n")
+
+    origem = ""
+    while origem not in cidades:
+        origem = input("Digite a cidade de ORIGEM (exatamente como na lista): ").strip()
+        if origem not in cidades:
+            print("Cidade não encontrada. Verifique a ortografia e os acentos.")
+
+    destino = ""
+    while destino not in cidades:
+        destino = input("Digite a cidade de DESTINO (exatamente como na lista): ").strip()
+        if destino not in cidades:
+             print("Cidade não encontrada. Verifique a ortografia e os acentos.")
+
+    print(f"\nAvaliação de Rota")
+    existe_rota = nx.has_path(G, origem, destino)
+    print(f"Existe rota entre {origem} e {destino}? {'Sim' if existe_rota else 'Não'}")
+
+    caminho = []
+    if existe_rota:
+        caminho = nx.shortest_path(G, source=origem, target=destino)
+        print(f"Caminho encontrado: {' -> '.join(caminho)}")
+
+    print("\nGerando mapa...")
+    plt.figure(figsize=(14, 10))
+    pos = nx.kamada_kawai_layout(G) 
+
+    nx.draw_networkx_nodes(G, pos, node_size=1500, node_color="#ADD8E6", edgecolors="black")
+    nx.draw_networkx_labels(G, pos, font_size=9, font_weight="bold")
+    nx.draw_networkx_edges(G, pos, edge_color="gray", width=1.0, alpha=0.5)
+
+    if len(caminho) > 1:
+        arestas_caminho = [(caminho[i], caminho[i+1]) for i in range(len(caminho)-1)]
+        nx.draw_networkx_edges(G, pos, edgelist=arestas_caminho, edge_color="red", width=3.0)
+
+    plt.title(f"Rotas Europeias Geradas por IA (Destacando: {origem} até {destino})", fontsize=14)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+except Exception as e:
+    print(f"Ocorreu um erro: {e}")
