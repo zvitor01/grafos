@@ -1,3 +1,11 @@
+"""
+Pede-se: Dado um conjunto de 20 cidades espalhadas pelo mundo:
+1) Registrar um conjunto de rotas aéreas em uma matriz de adjacência (usar informação real proveniente de um LLM (large language model)). Sugestão de mecanismo de busca: groq. 
+2) Dado duas cidades, avaliar se existe uma rota entre as cidades desconsiderando o sentido das rotas. 
+3) Montar um mapa com todas as relações entre cidades e assinalar com aresta em cor diferente o caminho entre as duas cidades solicitadas.
+4) Mostrar funcionando individualmente para o professor em sala de aula.
+"""
+
 import json
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -12,7 +20,7 @@ cidades = [
     "Zurique", "Genebra", "Edimburgo", "Dublin", "Atenas"
 ]
 
-chave_api = "AQ.Ab8RN6I5UpGl16KJ6ZhPy3CvYuKaz5YIYLbqAscB5CRJKGvYfA" 
+chave_api = " " 
 
 client = genai.Client(api_key=chave_api)
 
